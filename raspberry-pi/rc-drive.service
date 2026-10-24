@@ -1,0 +1,26 @@
+# Автозапуск управления с пульта (пользовательская служба systemd).
+# Установка:  ~/.config/systemd/user/rc-drive.service
+#   systemctl --user daemon-reload && systemctl --user enable --now rc-drive
+#   loginctl enable-linger biba        # запуск при загрузке без входа в систему
+# Управление: systemctl --user stop|start|restart|status rc-drive
+# Журнал:     journalctl _SYSTEMD_USER_UNIT=rc-drive.service -f
+# ВАЖНО: перед ручными тестами (spin_test.py, listen.py, rc_drive.py) остановите службу -
+#        два процесса на одном порту мешают друг другу.
+
+[Unit]
+Description=Robot RC drive (FlySky i-BUS -> Raspberry Pi -> hoverboard)
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=%h/robot
+Environment=RC_LOG_PERIOD=5
+ExecStart=/usr/bin/python3 -u %h/robot/rc_drive.py
+# SIGINT -> KeyboardInterrupt -> программа останавливает моторы и закрывает порты
+KillSignal=SIGINT
+TimeoutStopSec=5
+# перезапуск при падении, а также пока не подключён адаптер или порт платы
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target
